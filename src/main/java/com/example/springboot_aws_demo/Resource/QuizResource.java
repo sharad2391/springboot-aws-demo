@@ -15,7 +15,7 @@ public class QuizResource {
 	@Autowired
 	QuizDao quizDao;
 	
-	@RequestMapping()
+	@RequestMapping(value = "/quiz")
 	public List<Quiz> getQuizData() {
 		
 		return (List<Quiz>) quizDao.findAll();
