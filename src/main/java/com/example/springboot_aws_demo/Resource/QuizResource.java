@@ -19,6 +19,6 @@ public class QuizResource {
 	public List<Quiz> getQuizData() {
 		
 		return (List<Quiz>) quizDao.findAll();
-		//return "Greetings from Spring Boot!";
+		
 	}
 }
