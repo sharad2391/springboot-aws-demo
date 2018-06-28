@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.springboot_aws_demo.service.VideoService;
-import com.example.springboot_aws_demo.vo.PlayListDetails;
+import com.example.springboot_aws_demo.vo.PlayList;
 
 @RestController
 public class QuizResource {
@@ -26,8 +26,8 @@ public class QuizResource {
 	}*/
 	
 	@RequestMapping(value = "/videos")
-	public Collection<PlayListDetails> getVideosData() {
-		return videoService.getDataFromYoutubeService();
+	public Collection<PlayList> getVideosData() {
+		return videoService.getPlayListDetailsFromYoutubeService();
 		
 		
 		//return "Greetings from Spring Boot!";

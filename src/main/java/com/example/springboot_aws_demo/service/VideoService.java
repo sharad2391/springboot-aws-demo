@@ -3,15 +3,12 @@ package com.example.springboot_aws_demo.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import com.example.springboot_aws_demo.vo.PlayListDetails;
-import com.example.springboot_aws_demo.vo.Video;
+import com.example.springboot_aws_demo.vo.PlayList;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -21,21 +18,58 @@ public class VideoService {
 	@Autowired
 	RestTemplate restTemplate;
 
-	public Collection<PlayListDetails> getDataFromYoutubeService() {
-		final String uri = "https://www.googleapis.com/youtube/v3/activities?part=snippet,contentDetails&channelId=UC59K-uG2A5ogwIrHw4bmlEg&key=AIzaSyAswyWngcFEjCF8-CkRhmCNPH-7esa24r0&maxResults=50";
-		String result = restTemplate.getForObject(uri, String.class);
-		
+	public Collection<PlayList> getPlayListDetailsFromYoutubeService() {
+
+		Collection<PlayList> playListCollection = new ArrayList<>();
+
+		final String uri = "https://www.googleapis.com/youtube/v3/playlists?part=snippet&channelId=UC59K-uG2A5ogwIrHw4bmlEg\r\n"
+				+ "&key=AIzaSyAswyWngcFEjCF8-CkRhmCNPH-7esa24r0&maxResults=50";
+		String playListJson = restTemplate.getForObject(uri, String.class);
+
+		ObjectMapper mapper = new ObjectMapper();
+		JsonNode rootNode;
+		try {
+			rootNode = mapper.readTree(playListJson);
+			if (!rootNode.path("nextPageToken").isMissingNode()) {
+				String nextPageToken = rootNode.path("nextPageToken").asText();
+
+				final String uri1 = "https://www.googleapis.com/youtube/v3/playlists?part=snippet&channelId=UC59K-uG2A5ogwIrHw4bmlEg\r\n"
+						+ "&key=AIzaSyAswyWngcFEjCF8-CkRhmCNPH-7esa24r0&maxResults=50&pageToken=nextPageToken";
+				String playListJson1 = restTemplate.getForObject(uri, String.class);
+				getPlayListSet(playListJson1, playListCollection, rootNode);
+			}
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 		System.out.println("Result fetched from Youtube");
-		System.out.println(result);
-		
-		
-		return processYoutubeJson(result);
-		//return result;
+		System.out.println(playListJson);
+
+		return playListCollection;
 	}
 
-	private Collection<PlayListDetails> processYoutubeJson(String youtubeJson) {
+	private void getPlayListSet(String playListJson, Collection<PlayList> playListCollection, JsonNode rootNode) {
+
+		JsonNode itemsNode = rootNode.path("items");
+
+		for (JsonNode node : itemsNode) {
+			PlayList playList = new PlayList();
+			playList.setPlaylistId(node.path("id").asText());
+
+			JsonNode snippetNode = node.path("snippet");
+			if (!snippetNode.isMissingNode()) {
+				playList.setTitle(snippetNode.path("title").asText());
+			}
+			playListCollection.add(playList);
+		}
+
+	}
+
+	/*private Collection<PlayList> processYoutubeJson(String youtubeJson) {
 		
-		Collection<PlayListDetails> playListCollection = new ArrayList<>();
+		Collection<PlayList> playListCollection = new ArrayList<>();
 		ObjectMapper mapper = new ObjectMapper();
 
 		try {
@@ -46,7 +80,7 @@ public class VideoService {
 			Collection<Video> videosList = new ArrayList<>();
 			Set<String> playListSet = createPlayListSet(itemsNode);
 			for (String s : playListSet) {
-				PlayListDetails playList = new PlayListDetails();
+				PlayList playList = new PlayList();
 				playList.setPlaylistId(s);
 
 				for (JsonNode items : itemsNode) {
@@ -96,6 +130,6 @@ public class VideoService {
 		}
 		return playListSet;
 
-	}
+	}*/
 
 }
