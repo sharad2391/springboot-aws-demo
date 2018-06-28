@@ -1,4 +1,4 @@
-package com.example.springboot_aws_demo.vo;
+/*package com.example.springboot_aws_demo.vo;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -68,3 +68,4 @@ public class Quiz {
 	
 
 }
+*/
