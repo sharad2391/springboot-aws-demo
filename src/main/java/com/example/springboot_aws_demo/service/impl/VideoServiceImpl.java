@@ -45,7 +45,7 @@ public class VideoServiceImpl implements IVideoService {
 			JsonNode rootNode;
 			try {
 				rootNode = mapper.readTree(playListJson);
-				getPlayListSet(playListJson, playListCollection, rootNode);
+				createPlayList(playListJson, playListCollection, rootNode);
 
 				while (!rootNode.path("nextPageToken").isMissingNode()) {
 					String nextPageToken = rootNode.path("nextPageToken").asText();
@@ -60,7 +60,7 @@ public class VideoServiceImpl implements IVideoService {
 					System.out.println(response1.getBody());
 
 					rootNode = mapper.readTree(response1.getBody());
-					getPlayListSet(response1.getBody(), playListCollection, rootNode);
+					createPlayList(response1.getBody(), playListCollection, rootNode);
 				}
 
 			} catch (IOException e) {
@@ -80,7 +80,7 @@ public class VideoServiceImpl implements IVideoService {
 	 * @param playListCollection
 	 * @param rootNode
 	 */
-	private void getPlayListSet(String playListJson, Collection<PlayList> playListCollection, JsonNode rootNode) {
+	private void createPlayList(String playListJson, Collection<PlayList> playListCollection, JsonNode rootNode) {
 
 		JsonNode itemsNode = rootNode.path("items");
 
@@ -98,60 +98,84 @@ public class VideoServiceImpl implements IVideoService {
 	}
 
 	@Override
-	public Collection<Video> getVideoList() {
-		// TODO Auto-generated method stub
-		return null;
+	public Collection<Video> getVideoList(String playListId) throws Exception {
+		System.out.println("Creating videos list from videolistYoutubeAPIService for playlist with id::" + playListId);
+
+		Collection<Video> videosList = new ArrayList<>();
+
+		String playListItemsUrl = "https://www.googleapis.com/youtube/v3/playlistItems";
+		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(playListItemsUrl)
+				.queryParam("part", "snippet,contentDetails").queryParam("playlistId", playListId)
+				.queryParam("key", "AIzaSyAswyWngcFEjCF8-CkRhmCNPH-7esa24r0").queryParam("maxResults", "50");
+		System.out.println("Url for videolist is without token::" + builder.toUriString());
+
+		ResponseEntity<String> response = restTemplate.getForEntity(builder.toUriString(), String.class);
+
+		if (response.getStatusCode() == HttpStatus.OK) {
+			String videoListJson = response.getBody();
+			System.out.println("Result fetched from Youtube");
+			System.out.println(videoListJson);
+
+			ObjectMapper mapper = new ObjectMapper();
+			JsonNode rootNode;
+			try {
+				rootNode = mapper.readTree(videoListJson);
+				createVideoList(videoListJson, videosList, rootNode);
+
+				while (!rootNode.path("nextPageToken").isMissingNode()) {
+					String nextPageToken = rootNode.path("nextPageToken").asText();
+					UriComponentsBuilder builder1 = UriComponentsBuilder.fromUriString(playListItemsUrl)
+							.queryParam("part", "snippet,contentDetails").queryParam("playlistId", playListId)
+							.queryParam("key", "AIzaSyAswyWngcFEjCF8-CkRhmCNPH-7esa24r0").queryParam("maxResults", "50")
+							.queryParam("pageToken", nextPageToken);
+
+					System.out.println("Url for videoList is with next page token::" + builder1.toUriString());
+					ResponseEntity<String> response1 = restTemplate.getForEntity(builder1.toUriString(), String.class);
+
+					System.out.println("Result fetched from Youtube");
+					System.out.println(response1.getBody());
+
+					rootNode = mapper.readTree(response1.getBody());
+					createVideoList(response1.getBody(), videosList, rootNode);
+				}
+
+			} catch (IOException e) {
+				System.err.println("Error in mapping jsonString into Json Node" + e);
+			}
+		} else {
+			System.err.println("Youtube videolistService service is not up");
+			throw new Exception("Youtube videolistService service is not up");
+		}
+		System.out.println("Videolist created*****");
+		return videosList;
+
 	}
 
-	/*
-	 * private Collection<PlayList> processYoutubeJson(String youtubeJson) {
+	/**
 	 * 
-	 * Collection<PlayList> playListCollection = new ArrayList<>(); ObjectMapper
-	 * mapper = new ObjectMapper();
-	 * 
-	 * try { JsonNode rootNode = mapper.readTree(youtubeJson); JsonNode itemsNode =
-	 * rootNode.path("items");
-	 * 
-	 * 
-	 * Collection<Video> videosList = new ArrayList<>(); Set<String> playListSet =
-	 * createPlayListSet(itemsNode); for (String s : playListSet) { PlayList
-	 * playList = new PlayList(); playList.setPlaylistId(s);
-	 * 
-	 * for (JsonNode items : itemsNode) {
-	 * 
-	 * Video video = new Video(); JsonNode snippetNode = items.path("snippet"); if
-	 * (!snippetNode.isMissingNode()) {
-	 * video.setVideo_Title(snippetNode.path("title").asText());
-	 * video.setVideo_Description(snippetNode.path("description").asText()); }
-	 * 
-	 * JsonNode contentDetailsNode = items.path("contentDetails"); JsonNode
-	 * playlistItem = contentDetailsNode.path("playlistItem"); if
-	 * (!playlistItem.isMissingNode()) { JsonNode resourceId =
-	 * playlistItem.path("resourceId");
-	 * video.setVideoId(resourceId.path("videoId").asText());
-	 * 
-	 * if (playlistItem.path("playlistId").asText().equalsIgnoreCase(s)) {
-	 * videosList.add(video); }
-	 * 
-	 * } } playList.setVideos(videosList); playListCollection.add(playList); }
-	 * 
-	 * 
-	 * 
-	 * } catch (IOException e) {
-	 * System.out.println("Error in mappiing youtubeJson into tree of Json Nodes");
-	 * e.printStackTrace(); } return playListCollection; }
-	 * 
-	 * private Set<String> createPlayListSet(JsonNode itemsNode) { Set<String>
-	 * playListSet = new HashSet<>(); for (JsonNode items : itemsNode) {
-	 * 
-	 * JsonNode contentDetailsNode = items.path("contentDetails"); JsonNode
-	 * playlistItem = contentDetailsNode.path("playlistItem"); if
-	 * (!playlistItem.isMissingNode()) {
-	 * playListSet.add(playlistItem.path("playlistId").asText());
-	 * 
-	 * } } return playListSet;
-	 * 
-	 * }
+	 * @param playListJson
+	 * @param videosList
+	 * @param rootNode
 	 */
+	private void createVideoList(String playListJson, Collection<Video> videosList, JsonNode rootNode) {
+
+		JsonNode itemsNode = rootNode.path("items");
+
+		for (JsonNode node : itemsNode) {
+			Video video = new Video();
+			JsonNode contentDetailsNode = node.path("contentDetails");
+			if (!contentDetailsNode.isMissingNode()) {
+				video.setVideoId(contentDetailsNode.path("videoId").asText());
+			}
+
+			JsonNode snippetNode = node.path("snippet");
+			if (!snippetNode.isMissingNode()) {
+				video.setVideo_Title(snippetNode.path("title").asText());
+				video.setVideo_Description(snippetNode.path("description").asText());
+			}
+			videosList.add(video);
+		}
+
+	}
 
 }

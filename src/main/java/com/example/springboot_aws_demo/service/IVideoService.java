@@ -9,5 +9,5 @@ public interface IVideoService {
 
 	public Collection<PlayList> getPlayListDetails() throws Exception ;
 
-	public Collection<Video> getVideoList();
+	public Collection<Video> getVideoList(String playListId) throws Exception;
 }
